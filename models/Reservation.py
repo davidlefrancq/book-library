@@ -1,3 +1,4 @@
+import datetime
 from typing import Dict
 
 class Reservation:
@@ -20,17 +21,25 @@ class Reservation:
       "id": self.id,
       "bookId": self.bookId,
       "memberId": self.memberId,
-      "reservationDateStart": self.reservationDateStart,
-      "reservationDateEnd": self.reservationDateEnd,
+      "reservationDateStart": self.reservationDateStart.strftime("%Y-%m-%d"),
+      "reservationDateEnd": self.reservationDateEnd.strftime("%Y-%m-%d"),
       "status": self.status
     }
 
   def from_dict(data: Dict) -> 'Reservation':
+    reservationDateStart = None
+    if data["reservationDateStart"]:
+      reservationDateStart = datetime.datetime.strptime(data["reservationDateStart"], "%Y-%m-%d")
+    
+    reservationDateEnd = None
+    if data["reservationDateEnd"]:
+      reservationDateEnd = datetime.datetime.strptime(data["reservationDateEnd"], "%Y-%m-%d")
+      
     return Reservation(
       data["id"],
       data["bookId"],
       data["memberId"],
-      data["reservationDateStart"],
-      data["reservationDateEnd"],
+      reservationDateStart,
+      reservationDateEnd,
       data["status"]
     )

@@ -1,1 +1,0 @@
-{"reservations": [], "books": [{"id": 1, "title": "1984", "author": "GO", "genre": "Distopique", "publicationDate": "1900", "isAvailable": true}], "members": [{"id": 1, "firstName": "David", "lastName": "L", "address": "Gap", "phone": "069999999999"}], "borrows": []}

@@ -19,23 +19,39 @@ class Borrow:
     return (self.returnDate - self.expectedReturnDate).days
   
   def to_dict(self) -> Dict:
+    returnDate = None
+    if self.returnDate:
+      returnDate = self.returnDate.strftime("%Y-%m-%d")
+
     return {
       "id": self.id,
       "bookId": self.bookId,
       "memberId": self.memberId,
-      "borrowDate": self.borrowDate,
-      "expectedReturnDate": self.expectedReturnDate,
-      "returnDate": self.returnDate,
+      "borrowDate": self.borrowDate.strftime("%Y-%m-%d"),
+      "expectedReturnDate": self.expectedReturnDate.strftime("%Y-%m-%d"),
+      "returnDate": returnDate,
       "status": self.status
     }
   
   def from_dict(data: Dict) -> 'Borrow':
+    borrowDate = None
+    if data["borrowDate"]:
+      borrowDate = datetime.datetime.strptime(data["borrowDate"], "%Y-%m-%d")
+    
+    expectedReturnDate = None
+    if data["expectedReturnDate"]:
+      expectedReturnDate = datetime.datetime.strptime(data["expectedReturnDate"], "%Y-%m-%d")
+    
+    returnDate = None
+    if data["returnDate"]:
+      returnDate = datetime.datetime.strptime(data["returnDate"], "%Y-%m-%d")
+    
     return Borrow(
       data["id"],
       data["bookId"],
       data["memberId"],
-      data["borrowDate"],
-      data["expectedReturnDate"],
-      data["returnDate"],
+      borrowDate,
+      expectedReturnDate,
+      returnDate,
       data["status"]
     )

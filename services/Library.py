@@ -34,7 +34,7 @@ class Library:
     self.dataPersistence.saveBooks(self.catalog.books)
     
   def searchBook(self, title):
-    return self.catalog.searchBook(title)
+    return self.catalog.searchBookByTitle(title)
   
   def deleteBook(self, title):
     isDeleted = self.catalog.deleteBook(title)
@@ -42,45 +42,100 @@ class Library:
       self.dataPersistence.saveBooks(self.catalog.books)
     return isDeleted
   
+  def checkDateReservation(self, bookId, dateStart, dateEnd):
+    isAvailable = True
+    for reservation in self.reservations:
+      if reservation.bookId == bookId:
+        if reservation.status == "Accepted":
+          # dateStart doit être petit que dateStart
+          if dateStart < reservation.reservationDateStart:
+            # dateEnd doit être plus petit que reservationDateStart sinon false
+            if dateEnd > reservation.reservationDateStart:
+              isAvailable = False
+          # sinon si dateStart est plus grand que dateEnd
+          elif dateStart > reservation.reservationDateStart:
+            # dateStart doit être plus grand que reservationDateEnd sinon false
+            if dateStart < reservation.reservationDateEnd:
+              isAvailable = False
+    return isAvailable
+ 
   def reserveBook(self, bookId, memberId, reservationDateStart, reservationDateEnd):
-    id = len(self.reservations) + 1
-    reservation = Reservation(id, bookId, memberId, reservationDateStart, reservationDateEnd, "Pending")
-    self.reservations.append(reservation)
-    return reservation
+    if not self.checkDateReservation(bookId, reservationDateStart, reservationDateEnd):
+      print("Le livre n'est pas disponible pour cette période.")
+      return None
+    else:
+      id = len(self.reservations) + 1
+      reservation = Reservation(id, bookId, memberId, reservationDateStart, reservationDateEnd, "Pending")
+      self.reservations.append(reservation)
+      self.dataPersistence.saveReservations(self.reservations)
+      return reservation
     
   def acceptReservation(self, reservationId):
+    isAccepted = False
     reservation = self.getReservation(reservationId)
     if reservation:
       reservation.acceptReservation()
-      book = self.catalog.searchBook(reservation.bookId)
-      book.isAvailable = True
       self.dataPersistence.saveBooks(self.catalog.books)
-      return book.isAvailable
-    return False
+      isAccepted = True
+    return isAccepted
   
   def cancelReservation(self, reservationId):
+    isCancelled = False
     reservation = self.getReservation(reservationId)
     if reservation:
       reservation.cancelReservation()
       self.dataPersistence.saveReservations(self.reservations)
-      return True
-    return False
+      isCancelled = True
+    return isCancelled
   
   def getReservation(self, reservationId):
     for reservation in self.reservations:
       if reservation.id == reservationId:
         return reservation
     return
-    
-  def borrowBook(self, reservationId):
-    reservation = self.getReservation(reservationId)
-    if reservation and reservation.status == "Accepted":
+  
+  def borrowBookFromReservation(self, reservationId):
+    raise NotImplementedError
+  
+  def checkDateBorrowBook(self, bookId, dateStart, dateEnd):
+    isAvailable = True
+    book = self.catalog.searchBook(bookId)
+    if not book.isAvailable:
+      isAvailable = False
+    else:
+      for borrow in self.borrows:
+        if borrow.bookId == bookId:
+          if borrow.status == "Borrowed":
+            # dateStart doit être petit que dateStart
+            if dateStart < borrow.borrowDate:
+              # dateEnd doit être plus petit que reservationDateStart sinon false
+              if dateEnd > borrow.borrowDate:
+                isAvailable = False
+            # sinon si dateStart est plus grand que dateEnd
+            elif dateStart > borrow.borrowDate:
+              # dateStart doit être plus grand que reservationDateEnd sinon false
+              if dateStart < borrow.expectedReturnDate:
+                isAvailable = False
+    return isAvailable
+  
+  def borrowBook(self, bookId, memberId, dateStart, dateEnd):
+    isBorrowed = False
+    if self.checkDateBorrowBook(bookId, dateStart, dateEnd):
       id = len(self.borrows) + 1
-      borrow = Borrow(id, reservation.bookId, reservation.memberId, datetime.datetime.now(), reservation.reservationDateEnd, None, "Borrowed")
+      borrow = Borrow(id, bookId, memberId, dateStart, dateEnd, None, "Borrowed")
       self.borrows.append(borrow)
-      self.dataPersistence.saveBorrows(self.borrows)
-      return True
-    return False    
+      book = self.catalog.searchBook(bookId)
+      book.isAvailable = False
+      # self.dataPersistence.saveBorrows(self.borrows)
+      # self.dataPersistence.saveBooks(self.catalog.books)
+      self.dataPersistence.saveAll(
+        self.reservations,
+        self.catalog.books,
+        self.members,
+        self.borrows
+      )
+      isBorrowed = True
+    return isBorrowed  
     
   def returnBook(self, borrowId):
     borrow = self.searchBorrow(borrowId)
@@ -95,6 +150,11 @@ class Library:
   def showBooks(self):
     for book in self.catalog.books:
       print(f"{book.id} - {book.title}")
+  
+  def showAvailableBooks(self):
+    for book in self.catalog.books:
+      if book.isAvailable:
+        print(f"{book.id} - {book.title}")
   
   def searchBorrow(self, borrowId):
     for borrow in self.borrows:
