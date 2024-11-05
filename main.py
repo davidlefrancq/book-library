@@ -66,6 +66,7 @@ class App:
     else:
       self.notifier.notify("Book not returned. Borrow not found.")
 
-app = App()
-# app.test()
-app.run()
+if __name__ == "__main__":
+  app = App()
+  app.run()
+  # app.test()
